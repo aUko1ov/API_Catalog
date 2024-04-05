@@ -17,6 +17,9 @@ struct FCatalogItem
 	FString PhotoUrl;
 
 	UPROPERTY(BlueprintReadOnly)
+	FString PriceString;
+
+	UPROPERTY(BlueprintReadOnly)
 	float Price;
 
 };
