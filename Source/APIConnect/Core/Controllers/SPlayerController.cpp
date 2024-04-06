@@ -73,60 +73,13 @@ void ASPlayerController::OnTurnCatalogFilterCost()
 	CatalogWidgetInstance->FilterCatalogItemsByPrice(InputMinPrice, InputMaxPrice);
 }
 
-void ASPlayerController::OnFetchData(const FString& ResponseContent)
+void ASPlayerController::OnFetchData(const FCatalogData& CatalogData)
 {
-	FCatalogData CatalogData;
-	if (FetchJsonData(ResponseContent, CatalogData))
-	{
-		CatalogWidgetInstance = CreateWidget<UCatalogWidget>(this, CatalogWidgetClass);
-		if (!IsValid(CatalogWidgetInstance)) return;
+	CatalogWidgetInstance = CreateWidget<UCatalogWidget>(this, CatalogWidgetClass);
+	if (!IsValid(CatalogWidgetInstance)) return;
 
-		CatalogWidgetInstance->AddToViewport();
-		CatalogWidgetInstance->InitializeCatalog(CatalogData);
-	}
-}
-
-bool ASPlayerController::FetchJsonData(const FString& ResponseContent, FCatalogData& CatalogData) const
-{
-	TSharedPtr<FJsonObject> JsonObject;
-	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseContent);
-
-	// Пытаемся разобрать JSON
-	if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
-	{
-		const TSharedPtr<FJsonObject> CatalogObject = JsonObject->GetObjectField("catalog");
-
-		CatalogData.SectionName = CatalogObject->GetStringField("title");
-
-		TArray<TSharedPtr<FJsonValue>> ItemsArray = CatalogObject->GetArrayField("children");
-
-		for (const TSharedPtr<FJsonValue> Item : ItemsArray)
-		{
-			const TSharedPtr<FJsonObject> ItemObject = Item->AsObject();
-			FCatalogItem CatalogItem;
-
-			CatalogItem.Name = ItemObject->GetStringField("object");
-			TArray<TSharedPtr<FJsonValue>> PhotoArray = ItemObject->GetArrayField("photo");
-			if (PhotoArray.Num() > 0)
-			{
-				const TSharedPtr<FJsonObject> PhotoObject = PhotoArray[0]->AsObject();
-				CatalogItem.PhotoUrl = PhotoObject->GetStringField("preview");
-			}
-
-			CatalogItem.PriceString = FString::Printf(TEXT("%s %s"), *ItemObject->GetStringField("price_1"), *ItemObject->GetStringField("currency_1"));
-			CatalogItem.Price = FCString::Atof(*CatalogItem.PriceString);
-
-			CatalogData.Items.Add(CatalogItem);
-		}
-
-		UE_LOG(LogTemp, Warning, TEXT("Section Name: %s"), *CatalogData.SectionName);
-		return true;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON response."));
-		return false;
-	}
+	CatalogWidgetInstance->AddToViewport();
+	CatalogWidgetInstance->InitializeCatalog(CatalogData);
 }
 
 #pragma endregion

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "APIConnect/Structs/CatalogData.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Subsystems/LocalPlayerSubsystem.h"
 #include "HttpSubsystem.generated.h"
@@ -12,7 +13,7 @@ class APICONNECT_API UHttpSubsystem : public ULocalPlayerSubsystem
 {
 	GENERATED_BODY()
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHttpResponseReceived, const FString&, ResponseContent);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHttpResponseReceived, const FCatalogData&, CatalogData);
 
 public:
 	FOnHttpResponseReceived OnHttpResponseReceived;
@@ -26,4 +27,6 @@ private:
 
 	void HandleResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, TPromise<bool>& Promise);
 	void FetchCatalogDataAsync() const;
+
+	bool FetchJsonData(const FString& ResponseContent) const;
 };

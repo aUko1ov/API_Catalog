@@ -2,6 +2,7 @@
 #include "HttpSubsystem.h"
 
 #include "HttpModule.h"
+#include "APIConnect/Structs/CatalogData.h"
 #include "Interfaces/IHttpResponse.h"
 
 
@@ -76,7 +77,8 @@ void UHttpSubsystem::FetchCatalogDataAsync() const
 				{
 					if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
 					{
-						OnHttpResponseReceived.Broadcast(Response->GetContentAsString());
+						FString ResponseContent = Response->GetContentAsString();
+						FetchJsonData(ResponseContent);
 					}
 					else
 					{
@@ -86,4 +88,49 @@ void UHttpSubsystem::FetchCatalogDataAsync() const
 
 			Request->ProcessRequest();
 		});
+}
+
+bool UHttpSubsystem::FetchJsonData(const FString& ResponseContent) const
+{
+	TSharedPtr<FJsonObject> JsonObject;
+	const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseContent);
+
+	// Пытаемся разобрать JSON
+	if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+	{
+		FCatalogData CatalogData;
+		const TSharedPtr<FJsonObject> CatalogObject = JsonObject->GetObjectField("catalog");
+
+		CatalogData.SectionName = CatalogObject->GetStringField("title");
+
+		TArray<TSharedPtr<FJsonValue>> ItemsArray = CatalogObject->GetArrayField("children");
+
+		for (const TSharedPtr<FJsonValue> Item : ItemsArray)
+		{
+			const TSharedPtr<FJsonObject> ItemObject = Item->AsObject();
+			FCatalogItem CatalogItem;
+
+			CatalogItem.Name = ItemObject->GetStringField("object");
+			TArray<TSharedPtr<FJsonValue>> PhotoArray = ItemObject->GetArrayField("photo");
+			if (PhotoArray.Num() > 0)
+			{
+				const TSharedPtr<FJsonObject> PhotoObject = PhotoArray[0]->AsObject();
+				CatalogItem.PhotoUrl = PhotoObject->GetStringField("preview");
+			}
+
+			CatalogItem.PriceString = FString::Printf(TEXT("%s %s"), *ItemObject->GetStringField("price_1"), *ItemObject->GetStringField("currency_1"));
+			CatalogItem.Price = FCString::Atof(*CatalogItem.PriceString);
+
+			CatalogData.Items.Add(CatalogItem);
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("Section Name: %s"), *CatalogData.SectionName);
+		OnHttpResponseReceived.Broadcast(CatalogData);
+		return true;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON response."));
+		return false;
+	}
 }

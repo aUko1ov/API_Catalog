@@ -25,10 +25,9 @@ protected:
 #pragma region API_Server
 	void OnLoginServer();
 	void SetFetchingDelegateAPI();
-	bool FetchJsonData(const FString& ResponseContent, FCatalogData& CatalogData) const;
 
 	UFUNCTION()
-	void OnFetchData(const FString& ResponseContent);
+	void OnFetchData(const FCatalogData& CatalogData);
 
 	void OnSwitchCatalogAscendingCost();
 	void OnSwitchCatalogDescendingCost();
